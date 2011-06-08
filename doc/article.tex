@@ -1,0 +1,286 @@
+\documentclass[11pt,a4paper]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage{ucs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{listing}
+\usepackage{xfrac}
+\usepackage[german, ruled,noline]{algorithm2e}
+\usepackage[bookmarks=true,unicode=true]{hyperref}
+
+\hypersetup{pdftitle={Quadratwurzel},pdfauthor={Alexander Weigl}}
+
+\lstset{postbreak=\space,breakindent=5pt,breaklines,basicstyle={\footnotesize},frame=tblr,numbers=left,float=tb}
+
+
+\author{Alexander Weigl\\ \texttt{weigla@fh-trier.de}}
+\title{Berechnung der Quadratwurzel $x^2 \equiv_n a$ im Fall $n$ ist prim oder $n=pq$ ein Primprodukt}
+
+\begin{document}
+\maketitle
+
+\section{Einleitung}
+
+Die Berechnung der Quadratwurzel von quadratischen Resten ist elementar in manchen kryptologischen Verschlüsselsystemen. Vorliegendes Werk dokumentiert die Erarbeitung einer Software für die Berechnung der Quadratwurzel $x$ zum quadratischen Rest $a$ aus der Gleichung:
+
+\begin{equation}
+						x^2 \equiv a \mod x \quad \text{mit } \operatorname{gcd}(a,x) = 1 \label{a}
+\end{equation}
+
+Eine solche existiert nicht immer (vgl. Tabelle \ref{tab:ex15}). Zu $a=5$ in $Z_{15}$  ist nicht relativ prim zu $15$. In diesen Fall bezeichnen wir $a$ als quadratischer Nichrest.
+
+Für die Berechnung des quadratischen Restes fordere ich die Bedingungen 
+
+\begin{align}
+	n &\text{ ist prim }  &
+	n  &= p\cdot 1 \text{ mit p,q sind prim } 
+	\label{c}
+\end{align}
+
+Wenn $n=pq$ ein Primprodukt aus zwei Zahlen ist, kann man die Quadratwurzel über die Gleichungen: 
+
+\begin{equation}
+ x^2 = a \mod p \quad x^2 = a \mod p  \label{b}
+\end{equation}
+
+Damit ergibt sich die Forderungen nach der ersten Bedingung. 
+
+
+\begin{table}
+\label{tab:ex15}
+\centering
+\caption{Beispiel für Quadratwurzel in $Z_{15}$}
+\begin{tabular}{r*{15}{|r}}
+a & 0  &  1  & 2  & 3  & 4  & 5  &  6  &  7  &  8  & 9  & 10  & 11  & 12  &  13 & 14  \\ \hline
+x & 0  &  1  & 4  & 9  & 1  & 10 &  6  &  4  &  4  & 6  & 10  &  1  &  9  &   4 &  1
+\end{tabular}
+\end{table}
+
+\section{Grundlagen}
+Im Folgenden möchte ich die Berechnung über einen Bottom-Up vorstellen.
+
+
+\begin{quote}
+	\textbf{1. Fall:}
+	Sei $n$ prim. Dann kann die Lösung für die Gleichung \eqref{a} wie folgt bestimmt werden:
+		\begin{itemize}
+			\item $a^{\sfrac{(p-1)}{4}} \mod p$ falls $n \equiv 3 \mod 4$
+			\item Ausprobieren aller $1 \le i \le \sfrac{n}{2}$ mit $i^2 =a \mod n$
+		\end{itemize}
+	
+	In diesen Fall können wir überprüfen ob $a$ überhaupt ein quadratischer Rest ist, wenn die Gleichung  
+	erfüllt wird:	
+	\begin{equation}
+		a^{\sfrac{(p-1)}{2}} \mod n = a
+	\end{equation}
+\end{quote}
+
+\begin{quote}
+	\textbf{2. Fall:}
+		Sei $n=pq$ ist ein Primprodukt aus zwei Zahlen.
+		Dann zerlegen wir in $n$ in seine Primfaktoren $pq$.
+		Dann Lösen wir die Gleichungen \eqref{b} und erhalten vier Werte $x'_{pq_{12}}$.
+		Mit den Gleichungen gehen wir in den chinesischen Restsatz:
+		
+		\begin{align}
+			x_1 &\equiv x'_{p_1} \mod p & 	x_1 &\equiv x'_{q_1} \mod q \\
+			x_2 &\equiv x'_{p_2} \mod p & 	x_2 &\equiv x'_{q_1} \mod q \\
+			x_3 &\equiv x'_{p_1} \mod p & 	x_3 &\equiv x'_{q_2} \mod q \\
+			x_4 &\equiv x'_{p_2} \mod p & 	x_4 &\equiv x'_{q_2} \mod q										
+		\end{align}
+		
+		und erhalten $x_{1234}$ die unsere vier Lösungen für \eqref{a} darstellen.					
+							
+\end{quote}
+
+\section{Umsetzung}
+
+Der Ablauf für das Finden der Quadratwurzel wurde oben beschrieben. 
+Es fehlen noch die Algorithmen für den Primzahlentest, Primfaktorzerlegung und den chin. Restsatz.
+
+\subsection{Primzahlentest}
+
+Der Primzahlentest entscheidet das Problem $p \stackrel{\in}{?} PRIM$. Für ein $p\in \mathcal{Z}$.
+Wir verwenden dabei für $p<=10000$ einen Brute-Force-Ansatz indem durch alle Zahlen $2<=i<= \sqrt{p}$ 
+geteilt $\mathcal{O}(2^n)$. Für $p>10000$ wird ein probalistier Ansatz verwendet, wenn $p\mod 2=1$:
+
+\begin{algorithm}[H]
+	Wähle $a_1, \ldots, a_k$ zufällig aus $\{1, \ldots , p-1\}$\;
+	\ForEach{$a_i$}{
+			$t=a_{i}^{\frac{p-1}{2}}$\;
+			\If{not $t \equiv \pm 1 \mod p$}{
+				$p \notin PRIM$\;
+				break
+			}
+	}
+\end{algorithm}
+
+Die Fehlerwahrscheinlichkeit sinkt mit größeren $k$: $ \le \sfrac{1}{2}^k$. Die Implementierung ist in Listing \ref{lst:primtest}. Hier wird das $k$ anhand der gg. Fehlertoleranz bestimmt.
+
+
+\subsection{Primfaktorzerlegung}
+
+Die Zerlegung von $n$ in die Primfaktoren ist relativ einfach, wenn man die Primzahlen von 
+$1,\ldots ,\sfrac{n}{2}$ kennt. Wir können nun die Teilbarkeit von $n$ und den Primzahlen prüfen.
+Es gibt ungeführ $\frac{n}{2 \ln n - ln 2}$ solcher Primzahlen gibt. Das Finden der Primzahlen erfolgt über das Sieb des Erosthenes:
+
+\begin{algorithm}[H]
+\caption{Finden aller Primzahlen bis $n$}
+\KwData{$a_1, \ldots a_n ~,~ a_i \in \{0,1\}$}
+\KwResult{$a_i = 1 \rightarrow i \text{ ist prim}$}
+Initialisierung $a_i=1$\;
+
+$a_{01}=0$\;
+
+\For{$i := 2$ \KwTo $n$}{
+		\If{$a_i = 1$}{
+			\For{$j:=2\cdot i$ \KwTo $n$}{
+				$a_j=0$
+			}	
+		}		
+	}
+\end{algorithm}
+
+Der Algorithmus markiert alle alle Zahlen, die ein Vielfaches einer Primzahl sind. 
+Der Nachteil des Siebes ist ein höher Speichernplatzverbrauch. Die Implementierung des Siebes ist im Listing \ref{lst:sieb}; die des Primfaktorzerlegung in \ref{lst:faktor}.
+
+\section{Programmvorstellung}
+
+Die Entwicklung des Programmes erfolgte in Java und wurde später mit GWT\footnote{Google Web Toolkit: \url{http://google.de/?q=GWT}} in Javascript umgewandelt. Die Verwendung von GWT hat den Vorteil der statischen Prüfung der Syntax und Methodensignaturen.
+
+In der Eingabe Maske kann des $a$ und $n$ in der Form der Gleichung \eqref{a} erfolgen. 
+Ergebnisse werden anschließend in der unterhalb dargestellt. Dabei versucht die Applikation 
+alle Berechnung über Proberechnungen zu verfizieren. Sollte es nicht möglich sein die Quadratwurzel zu berechnen wird der Prozess mit einer \texttt{NoSolutionException} abgebrochen
+
+\section{Fazit}
+Die Fällen \eqref{c} in werden unter der Bedingung das die Zahlen in das \texttt{Integer} Datentyp passen erfolgreich berechnet. Das Limit auf den  Datentyp \texttt{Integer} ruht von der maximalen Größe von Arrays in Java wieder, die beim Sieb des Erosthenes eingesetzt werden. 
+
+Im Weiteren gibt es noch einen Sonderfall für \eqref{a}: bei $p\equiv 1 \mod 4$. Dieser Fall kann in einer späteren Funktion ergänzt werden\footnote{Fallunterscheidung in \texttt{rootWithPrime}}.
+
+
+\begin{center}
+ \href{http://creativecommons.org/licenses/by-nc-sa/3.0/de/legalcode}{	License: Creative Commons v3.0 - by-nc-sa} \\
+ Source Code: \url{http://github.com/areku/QuadraticRemainderRoot}
+\end{center}
+
+\hrulefill
+\section{Listings}
+
+\begin{lstlisting}[language=Java,caption={Sieb des Erosthenes},label=lst:sieb]
+public static List<Integer> getPrimes(int n) {
+	LinkedList<Integer> primes = new LinkedList<Integer>();
+	boolean b[] = new boolean[n];
+	for (int i = 2; i < n; i++) {
+	    if (!b[i]) {
+			primes.add(i);
+			for (int j = i; j < n; j += i) {
+			    b[i] = true;
+			}
+		}
+	}
+	return primes;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java,caption={Primfaktorzerlegung},label=lst:faktor]
+public static int[] factors(int n) {
+	List<Integer> factors = new LinkedList<Integer>();
+	List<Integer> primes = getPrimes((int) (n / 2));
+	long num = n;
+
+	Iterator<Integer> iter = primes.iterator();
+ 	while (num > 1 && iter.hasNext()) {
+	    int p = iter.next();
+	    if (num % p == 0) {
+		factors.add(p);
+		num = num / p;
+	    }
+	}
+
+	int[] l = new int[factors.size()];
+	int i = 0;
+	for (int m : factors) {
+	    l[i++] = m;
+	}
+	return l;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java,caption={GCD}]
+ public static int chineseRemainder(int[] a, int m[]) {
+	if (a.length != m.length) {
+	    throw new IllegalArgumentException();
+	}
+
+	int n = m.length;
+
+	long product = 1;
+	for (int i = 0; i < n; i++) {
+	    product *= m[i];
+	}
+
+	long M[] = new long[n];
+	for (int i = 0; i < n; i++) {
+	    M[i] = product / m[i];
+	}
+
+	long Minv[] = new long[n];
+	for (int i = 0; i < n; i++) {
+	    Minv[i] = GCD.extendedGCDFactorFirst(M[i], m[i]);
+	}
+
+	int x = 0;
+	for (int i = 0; i < Minv.length; i++) {
+	    x += (a[i] * M[i] * Minv[i]) % product;
+	}
+	
+	x%=product;
+	
+	if(x<0)
+	{
+	    x+=product;
+	}
+	return x;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java,caption={statistischer Primzahlentest},label={lst:primtest}]
+	public static boolean statTest(int n, double prob) {
+	if ((n & 1) == 0) {
+	    return false;
+	}
+
+	if (n <= 10000)// kleiner Bruteforce
+	{
+	    for (int i = 3; i < Math.sqrt(n); i++) {
+		if (n % i == 0)
+		    return false;
+	    }
+	    return true;
+	}
+
+	int k = 1;
+	double p = 0.5;
+	for (; k < 23; k++) {// Ueberschreitung maschinengenauigkeit
+	    if (p <= prob)
+		break;
+	    p /= 2;
+	}
+
+	Random r = new Random();
+	for (int i = 0; i < k; i++) {
+	    int ai = r.nextInt((int) n - 1);
+	    long t = (long) (Math.pow(ai, (n - 1) / 2)) % n;
+	    if (t == 1)
+		return true;
+	}
+	return false;
+    }
+\end{lstlisting}
+
+
+\end{document}
